@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duty Adjustment Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+        }
+        /* Smooth transition for theme switching */
+        .transition-colors {
+            transition-property: background-color, border-color, color, fill, stroke;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-gray-900 flex items-center justify-center min-h-screen p-4 text-slate-800 dark:text-slate-100 transition-colors duration-500">
+
+    <div class="glass-effect bg-white/95 dark:bg-slate-900/90 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/50 dark:border-slate-700 relative overflow-hidden transition-colors duration-500">
+        <!-- Decorative subtle accent at top -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+
+        <!-- Header Row with Toggle -->
+        <div class="flex justify-between items-start mb-6">
+            <div></div> <!-- Spacer -->
+            <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
+                <!-- Sun Icon (for Dark Mode) -->
+                <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <!-- Moon Icon (for Light Mode) -->
+                <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 24.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="text-center mb-6 -mt-12">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Duty Calculator</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">Proportional Rate Adjustment</p>
+        </div>
+
+        <!-- How to Use / Info Section -->
+        <details class="mb-6 group">
+            <summary class="flex items-center justify-center cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider hover:text-blue-700 dark:hover:text-blue-300 transition-colors list-none">
+                <span class="mr-1">How to use this tool</span>
+                <svg class="w-4 h-4 transform group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </summary>
+            <div class="mt-3 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-100 dark:border-slate-700">
+                <p class="mb-2">Calculate your new duty based on the change in exchange rate.</p>
+                <ol class="list-decimal list-inside space-y-1 text-xs">
+                    <li>Enter the <strong>Old Rate</strong> (e.g., 11.50).</li>
+                    <li>Enter the <strong>Duty</strong> you paid at that rate.</li>
+                    <li>Enter the <strong>New/Current Rate</strong>.</li>
+                </ol>
+                <p class="mt-2 text-xs italic opacity-75">The tool calculates the new duty proportionally.</p>
+            </div>
+        </details>
+        
+        <div class="space-y-6">
+            <!-- Old Rate Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Old Exchange Rate</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <input type="number" id="oldRate" step="any" placeholder="e.g. 11.50" 
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500 shadow-sm">
+                </div>
+            </div>
+
+            <!-- Old Duty Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Old Duty Amount</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <input type="number" id="oldDuty" step="any" placeholder="e.g. 60,000" 
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500 shadow-sm">
+                </div>
+            </div>
+
+            <!-- New Rate Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">New Exchange Rate</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <input type="number" id="newRate" step="any" placeholder="e.g. 11.00" 
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500 shadow-sm">
+                </div>
+            </div>
+
+            <button onclick="calculate()" 
+                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-700 dark:to-indigo-800 dark:hover:from-blue-600 dark:hover:to-indigo-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Calculate Duty
+            </button>
+
+            <!-- Result Area -->
+            <div id="resultContainer" class="hidden transform transition-all duration-500 ease-out translate-y-4 opacity-0">
+                <div class="mt-6 p-6 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-black dark:to-slate-900 rounded-xl shadow-inner text-center border border-slate-700 relative overflow-hidden">
+                    <!-- Subtle shine effect -->
+                    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-5 pointer-events-none"></div>
+                    
+                    <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">New Duty Payable</p>
+                    <p id="resultText" class="text-4xl font-extrabold text-white tracking-tight"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check for saved user preference, if any, on load of the website
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('sunIcon').classList.remove('hidden');
+            document.getElementById('moonIcon').classList.add('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('sunIcon').classList.add('hidden');
+            document.getElementById('moonIcon').classList.remove('hidden');
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+        }
+
+        function calculate() {
+            const oldRate = parseFloat(document.getElementById('oldRate').value);
+            const oldDuty = parseFloat(document.getElementById('oldDuty').value);
+            const newRate = parseFloat(document.getElementById('newRate').value);
+            const resultContainer = document.getElementById('resultContainer');
+            const resultText = document.getElementById('resultText');
+
+            if (isNaN(oldRate) || isNaN(oldDuty) || isNaN(newRate) || oldRate === 0) {
+                // Hide with animation
+                resultContainer.classList.remove('translate-y-0', 'opacity-100');
+                resultContainer.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => resultContainer.classList.add('hidden'), 300);
+                return;
+            }
+
+            // Formula: (New Rate * Old Duty) / Old Rate
+            const newDuty = (newRate * oldDuty) / oldRate;
+
+            resultText.innerText = 'GHS ' + newDuty.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
+            // Show with animation
+            resultContainer.classList.remove('hidden');
+            // Small delay to allow display block to render before animating opacity
+            setTimeout(() => {
+                resultContainer.classList.remove('translate-y-4', 'opacity-0');
+                resultContainer.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+        }
+        
+        // Add Enter key support
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                calculate();
+            }
+        });
+    </script>
+</body>
+</html>
