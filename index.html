@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghana Duty Tools</title>
+    <title>Duty Adjustment Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -11,714 +11,204 @@
         }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, deleteDoc, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        let currentUser = null;
-        let authInitialized = false;
-
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                console.error("Auth failed", e);
-            }
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-                authInitialized = true;
-                // If admin panel is open, refresh data
-                if (!document.getElementById('adminPanel').classList.contains('hidden') && !document.getElementById('adminDash').classList.contains('hidden')) {
-                    loadDatabaseView();
-                }
-            }
-        });
-
-        initAuth();
-
-        // Export globals
-        window.db = db;
-        window.auth = auth;
-        window.appId = appId;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.getDocs = getDocs;
-        window.deleteDoc = deleteDoc;
-        window.updateDoc = updateDoc;
-        window.doc = doc;
-        window.writeBatch = writeBatch;
-        window.query = query;
-        window.where = where;
-        window.orderBy = orderBy;
-        window.limit = limit;
-        window.isAuthReady = () => authInitialized;
-        window.getCurrentUser = () => auth.currentUser;
-    </script>
-
     <style>
         body { font-family: 'Inter', sans-serif; }
         input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        .glass-effect { backdrop-filter: blur(12px); }
-        .transition-all-300 { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-
-        .tab-active { background-color: white; color: #0f172a; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .dark .tab-active { background-color: #1e293b; color: white; }
-
-        /* Loader */
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid white; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+        }
+        /* Smooth transition for theme switching */
+        .transition-colors {
+            transition-property: background-color, border-color, color, fill, stroke;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 flex flex-col items-center min-h-screen p-4 text-slate-800 dark:text-slate-100 transition-all-300">
+<body class="bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-gray-900 flex items-center justify-center min-h-screen p-4 text-slate-800 dark:text-slate-100 transition-colors duration-500">
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="fixed top-5 right-5 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+    <div class="glass-effect bg-white/95 dark:bg-slate-900/90 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/50 dark:border-slate-700 relative overflow-hidden transition-colors duration-500">
+        <!-- Decorative subtle accent at top -->
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
 
-    <!-- Edit Modal -->
-    <div id="editModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-        <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
-            <div class="p-4 border-b dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between">
-                <h3 class="font-bold">Edit Record</h3>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-red-500">✕</button>
-            </div>
-            <div class="p-4 space-y-3">
-                <input type="hidden" id="editId">
-                <div class="grid grid-cols-2 gap-3">
-                    <input id="editYear" type="number" placeholder="Year" class="p-2 border rounded dark:bg-slate-800 dark:border-slate-700">
-                    <input id="editMake" type="text" placeholder="Make" class="p-2 border rounded dark:bg-slate-800 dark:border-slate-700">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <input id="editModel" type="text" placeholder="Model" class="p-2 border rounded dark:bg-slate-800 dark:border-slate-700">
-                    <input id="editTrim" type="text" placeholder="Trim" class="p-2 border rounded dark:bg-slate-800 dark:border-slate-700">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-[10px] text-slate-500 uppercase">Duty (GHS)</label>
-                        <input id="editDuty" type="number" placeholder="Duty" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700">
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-500 uppercase">Ex. Rate</label>
-                        <input id="editRate" type="number" placeholder="Rate" class="w-full p-2 border rounded dark:bg-slate-800 dark:border-slate-700">
-                    </div>
-                </div>
-                <div class="pt-2 flex gap-2">
-                    <button onclick="closeEditModal()" class="flex-1 py-2 bg-slate-200 dark:bg-slate-800 rounded hover:bg-slate-300 dark:hover:bg-slate-700 text-sm">Cancel</button>
-                    <button onclick="saveEdit()" id="btnSaveEdit" class="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-bold">Save Changes</button>
-                </div>
-            </div>
+        <!-- Header Row with Toggle -->
+        <div class="flex justify-between items-start mb-6">
+            <div></div> <!-- Spacer -->
+            <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
+                <!-- Sun Icon (for Dark Mode) -->
+                <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <!-- Moon Icon (for Light Mode) -->
+                <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 24.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
         </div>
-    </div>
 
-    <!-- Main App Container -->
-    <div class="w-full max-w-2xl">
-        <div class="glass-effect bg-white/95 dark:bg-slate-900/90 rounded-2xl shadow-2xl border border-white/50 dark:border-slate-700 relative overflow-hidden transition-all-300">
-            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+        <div class="text-center mb-6 -mt-12">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Duty Calculator</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">Proportional Rate Adjustment</p>
+        </div>
 
-            <div class="p-6 pb-2">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Ghana Duty Tools</h1>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Verified Estimations & Calculations</p>
+        <!-- How to Use / Info Section -->
+        <details class="mb-6 group">
+            <summary class="flex items-center justify-center cursor-pointer text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider hover:text-blue-700 dark:hover:text-blue-300 transition-colors list-none">
+                <span class="mr-1">How to use this tool</span>
+                <svg class="w-4 h-4 transform group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </summary>
+            <div class="mt-3 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-100 dark:border-slate-700">
+                <p class="mb-2">Calculate your new duty based on the change in exchange rate.</p>
+                <ol class="list-decimal list-inside space-y-1 text-xs">
+                    <li>Enter the <strong>Old Rate</strong> (e.g., 11.50).</li>
+                    <li>Enter the <strong>Duty</strong> you paid at that rate.</li>
+                    <li>Enter the <strong>New/Current Rate</strong>.</li>
+                </ol>
+                <p class="mt-2 text-xs italic opacity-75">The tool calculates the new duty proportionally.</p>
+            </div>
+        </details>
+        
+        <div class="space-y-6">
+            <!-- Old Rate Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Old Exchange Rate</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                     </div>
-                    <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
-                        <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 24.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                    </button>
-                </div>
-
-                <div class="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-4 relative">
-                    <button onclick="switchTab('simple')" id="tab-simple" class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 tab-active flex justify-center items-center gap-2">
-                        Rate Adjuster
-                    </button>
-                    <button onclick="switchTab('vehicle')" id="tab-vehicle" class="flex-1 py-2 px-4 rounded-lg text-sm font-semibold text-slate-500 dark:text-slate-400 transition-all duration-200 flex justify-center items-center gap-2">
-                        Vehicle Estimator
-                    </button>
+                    <input type="number" id="oldRate" step="any" placeholder="e.g. 11.50" 
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500 shadow-sm">
                 </div>
             </div>
 
-            <div class="p-6 pt-0">
-                <!-- VIEW 1: Simple Calculator -->
-                <div id="view-simple" class="space-y-6">
-                    <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/50 text-xs text-blue-800 dark:text-blue-300">
-                        <p><strong>Quick Adjust:</strong> Calculate new duty based on exchange rate changes.</p>
+            <!-- Old Duty Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Old Duty Amount</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-slate-400 text-sm font-medium">Rt</span>
-                            <input type="number" id="oldRate" step="any" placeholder="Old Rate (e.g. 11.5)" class="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm">
-                        </div>
-                        <div class="relative">
-                            <span class="absolute left-3 top-3 text-slate-400 text-sm font-medium">GHS</span>
-                            <input type="number" id="oldDuty" step="any" placeholder="Old Duty Paid" class="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm">
-                        </div>
-                    </div>
-                    <div class="relative">
-                         <span class="absolute left-3 top-3 text-slate-400 text-sm font-medium">Rt</span>
-                         <input type="number" id="newRate" step="any" placeholder="New Rate (e.g. 15.0)" class="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm">
-                    </div>
-                    <button onclick="calculateSimple()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-lg transition-transform hover:-translate-y-0.5">Calculate Adjustment</button>
-                    <div id="simpleResult" class="hidden mt-4 p-5 bg-slate-900 dark:bg-black rounded-xl text-center shadow-inner">
-                        <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">New Duty Payable</p>
-                        <p id="simpleResultText" class="text-3xl font-extrabold text-white"></p>
-                    </div>
+                    <input type="number" id="oldDuty" step="any" placeholder="e.g. 60,000" 
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500 shadow-sm">
                 </div>
+            </div>
 
-                <!-- VIEW 2: Vehicle Estimator -->
-                <div id="view-vehicle" class="hidden space-y-6">
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="col-span-1">
-                             <input type="number" id="vYear" placeholder="Year" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white text-sm">
-                        </div>
-                        <div class="col-span-2">
-                             <input type="text" id="vMake" placeholder="Make (e.g. Toyota)" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white text-sm">
-                        </div>
+            <!-- New Rate Input -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">New Exchange Rate</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="vModel" placeholder="Model (e.g. Camry)" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white text-sm">
-                        <input type="text" id="vTrim" placeholder="Trim (Optional)" class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white text-sm">
-                    </div>
-                    <div class="relative">
-                        <span class="absolute left-3 top-3 text-slate-400 text-sm font-medium">Rt</span>
-                        <input type="number" id="vRate" placeholder="Current GHS Exchange Rate" class="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white text-sm">
-                    </div>
+                    <input type="number" id="newRate" step="any" placeholder="e.g. 11.00" 
+                        class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-800 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500 shadow-sm">
+                </div>
+            </div>
+
+            <button onclick="calculate()" 
+                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 dark:from-blue-700 dark:to-indigo-800 dark:hover:from-blue-600 dark:hover:to-indigo-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Calculate Duty
+            </button>
+
+            <!-- Result Area -->
+            <div id="resultContainer" class="hidden transform transition-all duration-500 ease-out translate-y-4 opacity-0">
+                <div class="mt-6 p-6 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-black dark:to-slate-900 rounded-xl shadow-inner text-center border border-slate-700 relative overflow-hidden">
+                    <!-- Subtle shine effect -->
+                    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-5 pointer-events-none"></div>
                     
-                    <button onclick="estimateDuty()" id="btnEstimate" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-lg shadow-lg transition-transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                        <span>Run Prediction Funnel</span>
-                    </button>
-
-                    <!-- Enhanced Result Card -->
-                    <div id="predictionResult" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-lg">
-                             <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">Estimated Duty Range</h3>
-                                    <p id="matchTypeDisplay" class="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> 
-                                        Processing...
-                                    </p>
-                                </div>
-                                <div class="bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Estimate</div>
-                             </div>
-
-                             <div class="h-2 bg-slate-100 dark:bg-slate-700 rounded-full mb-4 flex overflow-hidden">
-                                 <div class="w-1/4 bg-transparent"></div>
-                                 <div class="w-1/2 bg-gradient-to-r from-indigo-300 to-indigo-600 opacity-80 rounded-full"></div>
-                             </div>
-
-                             <div class="grid grid-cols-3 gap-2 text-center">
-                                 <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                                     <p class="text-[10px] uppercase text-slate-400 font-bold mb-1">Low</p>
-                                     <p id="resLow" class="text-sm font-semibold text-slate-600 dark:text-slate-300">--</p>
-                                 </div>
-                                 <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800">
-                                     <p class="text-[10px] uppercase text-indigo-600 dark:text-indigo-400 font-bold mb-1">Median</p>
-                                     <p id="resMed" class="text-base font-extrabold text-indigo-700 dark:text-indigo-300">--</p>
-                                 </div>
-                                 <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                                     <p class="text-[10px] uppercase text-slate-400 font-bold mb-1">High</p>
-                                     <p id="resHigh" class="text-sm font-semibold text-slate-600 dark:text-slate-300">--</p>
-                                 </div>
-                             </div>
-                             <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                                <p class="text-[10px] text-center text-slate-400 italic">Figures based on historical customs data. Actual valuation may vary.</p>
-                             </div>
-                        </div>
-                    </div>
-
-                    <div class="pt-2 text-center">
-                        <button onclick="toggleAdmin()" class="text-xs text-slate-400 hover:text-indigo-500 transition-colors">Admin Access</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Expanded Admin Panel -->
-        <div id="adminPanel" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div class="bg-white dark:bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]">
-                <div class="p-4 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                    <div class="flex items-center gap-4">
-                        <h2 class="font-bold text-slate-800 dark:text-white">Admin Console</h2>
-                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 rounded-full font-medium">Data Manager</span>
-                    </div>
-                    <button onclick="toggleAdmin()" class="text-slate-400 hover:text-red-500 font-bold p-2 text-xl">×</button>
-                </div>
-                
-                <div class="flex-1 overflow-hidden flex flex-col">
-                    <!-- Login State -->
-                    <div id="adminLogin" class="p-10 text-center space-y-4 max-w-md mx-auto mt-20">
-                        <h3 class="text-lg font-bold">Secure Access Required</h3>
-                        <input type="password" id="adminPass" placeholder="Enter Admin Password" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-lg dark:bg-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-slate-500 text-center">
-                        <button onclick="checkAdmin()" class="w-full bg-slate-900 hover:bg-black dark:bg-slate-700 dark:hover:bg-slate-600 text-white py-3 rounded-lg font-medium transition-colors">Unlock</button>
-                    </div>
-
-                    <!-- Dashboard State -->
-                    <div id="adminDash" class="hidden flex flex-col h-full">
-                        
-                        <!-- Top Bar: Add/Import -->
-                        <div class="p-4 border-b dark:border-slate-800 flex gap-4 bg-slate-50 dark:bg-slate-900/50 flex-wrap">
-                            <div class="flex-1 min-w-[300px] border-r border-slate-200 dark:border-slate-700 pr-4">
-                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Add Manual Record</h4>
-                                <div class="grid grid-cols-4 gap-2 mb-2">
-                                    <input id="aYear" type="number" placeholder="Year" class="p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700">
-                                    <input id="aMake" type="text" placeholder="Make" class="p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700">
-                                    <input id="aModel" type="text" placeholder="Model" class="p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700">
-                                    <input id="aDuty" type="number" placeholder="Duty" class="p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700">
-                                </div>
-                                <div class="flex gap-2">
-                                    <input id="aGroup" type="text" placeholder="Group Label (e.g. Manual Entry 1)" class="flex-1 p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700">
-                                    <button onclick="addManualRecord()" id="btnManualAdd" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-xs font-bold">Add</button>
-                                </div>
-                            </div>
-                            
-                            <div class="flex-1 min-w-[300px]">
-                                <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">ICUMS Bulk Import</h4>
-                                <div class="flex gap-2 h-full">
-                                    <textarea id="htmlImport" class="flex-1 p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700 font-mono resize-none h-[72px]" placeholder="Paste <table> or <tr> code..."></textarea>
-                                    <div class="flex flex-col gap-2 w-32">
-                                        <input id="iGroup" type="text" placeholder="Import Label" class="p-2 text-xs border rounded dark:bg-slate-800 dark:border-slate-700">
-                                        <button onclick="processHTMLImport()" id="btnBulkImport" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-2 rounded text-xs font-bold h-full">Import</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Data Toolbar -->
-                        <div class="p-2 bg-slate-100 dark:bg-slate-800 flex justify-between items-center text-xs">
-                            <div class="flex items-center gap-3">
-                                <span class="font-bold px-2">Data View</span>
-                                <select id="filterBatch" onchange="loadDatabaseView()" class="p-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-700">
-                                    <option value="">All Groups/Batches</option>
-                                    <!-- Options populated dynamically -->
-                                </select>
-                                <button onclick="loadDatabaseView()" class="text-blue-600 hover:underline">Refresh</button>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span id="selectedCount" class="text-slate-500 hidden">0 selected</span>
-                                <button onclick="deleteSelected()" id="btnDeleteSelected" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded opacity-50 cursor-not-allowed" disabled>Delete Selected</button>
-                            </div>
-                        </div>
-
-                        <!-- Data Table -->
-                        <div class="flex-1 overflow-auto bg-white dark:bg-slate-900">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-slate-50 dark:bg-slate-800 sticky top-0 shadow-sm z-10">
-                                    <tr>
-                                        <th class="p-3 w-10"><input type="checkbox" onchange="toggleSelectAll(this)"></th>
-                                        <th class="p-3">Year</th>
-                                        <th class="p-3">Make / Model / Trim</th>
-                                        <th class="p-3">Duty (GHS)</th>
-                                        <th class="p-3">Group/Batch</th>
-                                        <th class="p-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dbTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
-                                    <tr><td colspan="6" class="p-10 text-center text-slate-400">Loading data...</td></tr>
-                                </tbody>
-                            </table>
-                            <div class="p-4 text-center">
-                                <button onclick="loadDatabaseView(true)" class="text-xs text-blue-600 hover:text-blue-700 font-bold bg-blue-50 dark:bg-slate-800 px-4 py-2 rounded-full">Load More Records</button>
-                            </div>
-                        </div>
-                    </div>
+                    <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">New Duty Payable</p>
+                    <p id="resultText" class="text-4xl font-extrabold text-white tracking-tight"></p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- UX Utilities ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const colors = type === 'error' ? 'bg-red-500 text-white' : 'bg-slate-900 dark:bg-white dark:text-slate-900 text-white';
-            toast.className = `${colors} px-4 py-3 rounded-lg shadow-lg text-sm font-medium transform transition-all duration-300 translate-x-full pointer-events-auto flex items-center gap-2 min-w-[200px]`;
-            toast.innerHTML = type === 'error' 
-                ? `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> ${message}`
-                : `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> ${message}`;
-            container.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.remove('translate-x-full'));
-            setTimeout(() => { toast.classList.add('translate-x-full', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 3000);
+        // Check for saved user preference, if any, on load of the website
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('sunIcon').classList.remove('hidden');
+            document.getElementById('moonIcon').classList.add('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.getElementById('sunIcon').classList.add('hidden');
+            document.getElementById('moonIcon').classList.remove('hidden');
         }
 
-        function setLoading(btnId, isLoading, text = "") {
-            const btn = document.getElementById(btnId);
-            if (!btn) return;
-            if (isLoading) {
-                btn.dataset.originalText = btn.innerHTML;
-                btn.innerHTML = `<div class="loader"></div>`;
-                btn.disabled = true;
-                btn.classList.add('opacity-75', 'cursor-not-allowed');
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
             } else {
-                btn.innerHTML = btn.dataset.originalText || text;
-                btn.disabled = false;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                html.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
             }
         }
 
-        // --- Core Logic ---
-        function switchTab(tab) {
-            document.getElementById('view-simple').classList.toggle('hidden', tab !== 'simple');
-            document.getElementById('view-vehicle').classList.toggle('hidden', tab !== 'vehicle');
-            document.getElementById('tab-simple').classList.toggle('tab-active', tab === 'simple');
-            document.getElementById('tab-vehicle').classList.toggle('tab-active', tab === 'vehicle');
-            const sTab = document.getElementById('tab-simple');
-            const vTab = document.getElementById('tab-vehicle');
-            if (tab === 'simple') { sTab.classList.remove('text-slate-500'); vTab.classList.add('text-slate-500'); } 
-            else { vTab.classList.remove('text-slate-500'); sTab.classList.add('text-slate-500'); }
-        }
+        function calculate() {
+            const oldRate = parseFloat(document.getElementById('oldRate').value);
+            const oldDuty = parseFloat(document.getElementById('oldDuty').value);
+            const newRate = parseFloat(document.getElementById('newRate').value);
+            const resultContainer = document.getElementById('resultContainer');
+            const resultText = document.getElementById('resultText');
 
-        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); }
-        function toggleAdmin() { document.getElementById('adminPanel').classList.toggle('hidden'); }
-        function formatMoney(amount) { return (amount || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
-
-        function checkAdmin() {
-            if (document.getElementById('adminPass').value === 'admin') {
-                document.getElementById('adminLogin').classList.add('hidden');
-                document.getElementById('adminDash').classList.remove('hidden');
-                loadDatabaseView();
-                showToast("Admin Console Unlocked");
-            } else { showToast("Incorrect Password", "error"); }
-        }
-
-        function calculateSimple() {
-            const or = parseFloat(document.getElementById('oldRate').value);
-            const od = parseFloat(document.getElementById('oldDuty').value);
-            const nr = parseFloat(document.getElementById('newRate').value);
-            if (!or || !od || !nr) { showToast("Please fill all fields", "error"); return; }
-            const res = (nr * od) / or;
-            document.getElementById('simpleResult').classList.remove('hidden');
-            document.getElementById('simpleResultText').innerText = 'GHS ' + res.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-
-        async function getVehiclesCollection() {
-            if (!window.isAuthReady()) { showToast("Database connecting...", "error"); return null; }
-            return window.collection(window.db, 'artifacts', window.appId, 'public', 'data', 'vehicle_records');
-        }
-
-        async function estimateDuty() {
-            const year = parseInt(document.getElementById('vYear').value);
-            const make = document.getElementById('vMake').value.trim();
-            const model = document.getElementById('vModel').value.trim();
-            const currentRate = parseFloat(document.getElementById('vRate').value);
-
-            if (!year || !make || !currentRate) { showToast("Year, Make, and Rate required", "error"); return; }
-            setLoading('btnEstimate', true);
-            
-            const col = await getVehiclesCollection();
-            if (!col) { setLoading('btnEstimate', false); return; }
-
-            const q = window.query(col, window.where('make_lower', '==', make.toLowerCase()));
-            try {
-                const snapshot = await window.getDocs(q);
-                const records = [];
-                snapshot.forEach(doc => records.push(doc.data()));
-
-                if (records.length === 0) {
-                    showToast(`No data found for ${make}`, "error");
-                    setLoading('btnEstimate', false);
-                    return;
-                }
-
-                let funnel = records.filter(r => r.model_lower === model.toLowerCase() && Math.abs(r.year - year) <= 2);
-                let matchLabel = "Precision Model Match";
-                if (funnel.length === 0) { funnel = records; matchLabel = "Manufacturer Baseline (Avg)"; }
-
-                const dutiesUSD = funnel.map(r => r.duty_paid_ghs / r.exchange_rate_at_time).sort((a,b) => a-b);
-                const median = dutiesUSD[Math.floor(dutiesUSD.length / 2)];
-                const low = dutiesUSD[Math.floor(dutiesUSD.length * 0.1)] || dutiesUSD[0];
-                const high = dutiesUSD[Math.floor(dutiesUSD.length * 0.9)] || dutiesUSD[dutiesUSD.length - 1];
-
-                document.getElementById('matchTypeDisplay').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> ${matchLabel}`;
-                document.getElementById('resLow').innerText = 'GHS ' + formatMoney(low * currentRate);
-                document.getElementById('resMed').innerText = 'GHS ' + formatMoney(median * currentRate);
-                document.getElementById('resHigh').innerText = 'GHS ' + formatMoney(high * currentRate);
-                document.getElementById('predictionResult').classList.remove('hidden');
-                showToast("Estimation Complete");
-            } catch (e) { console.error(e); showToast("Calculation failed", "error"); } 
-            finally { setLoading('btnEstimate', false); }
-        }
-
-        // --- Data Management Logic ---
-
-        let lastDoc = null; // For pagination if we want to implement "Load More" proper
-        let currentLimit = 50;
-
-        async function loadDatabaseView(loadMore = false) {
-            const col = await getVehiclesCollection();
-            if (!col) return;
-            
-            if (loadMore) currentLimit += 50;
-            else currentLimit = 50;
-
-            const filterGroup = document.getElementById('filterBatch').value;
-            let q;
-
-            // Simple "filter in memory" approach for Group/Batch because compound queries require indexes we can't auto-create here
-            // We fetch by timestamp desc, then filter in JS for the Group if selected.
-            // Rule 2: No complex queries.
-            
-            q = window.query(col, window.orderBy('timestamp', 'desc'), window.limit(currentLimit));
-            
-            try {
-                const snap = await window.getDocs(q);
-                const tbody = document.getElementById('dbTableBody');
-                if (!loadMore) tbody.innerHTML = '';
-                
-                const uniqueGroups = new Set();
-                let rowsHtml = '';
-                
-                snap.forEach(d => {
-                    const r = d.data();
-                    const id = d.id;
-                    if (r.batch_group) uniqueGroups.add(r.batch_group);
-
-                    // JS Filter for Group (Client-side filtering for simplicity/Rule 2 compliance)
-                    if (filterGroup && r.batch_group !== filterGroup) return;
-
-                    rowsHtml += `
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 group transition-colors">
-                            <td class="p-3"><input type="checkbox" class="row-select" value="${id}" onchange="updateSelectionState()"></td>
-                            <td class="p-3">${r.year}</td>
-                            <td class="p-3">
-                                <div class="font-bold">${r.make} ${r.model}</div>
-                                <div class="text-[10px] text-slate-400">${r.trim || '-'}</div>
-                            </td>
-                            <td class="p-3 font-mono">GHS ${formatMoney(r.duty_paid_ghs)}</td>
-                            <td class="p-3">
-                                <span class="text-[10px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">${r.batch_group || 'Manual'}</span>
-                            </td>
-                            <td class="p-3 text-right">
-                                <button onclick="openEditModal('${id}', '${r.year}', '${r.make}', '${r.model}', '${r.trim||''}', '${r.duty_paid_ghs}', '${r.exchange_rate_at_time}')" class="text-blue-500 hover:text-blue-700 font-bold text-xs mr-2">Edit</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                if (!loadMore) {
-                     tbody.innerHTML = rowsHtml || `<tr><td colspan="6" class="p-10 text-center text-slate-400">No records found.</td></tr>`;
-                     updateGroupFilter(uniqueGroups);
-                } else {
-                     tbody.innerHTML = rowsHtml; // Replace all to simple re-render filtered list (not efficient but works for demo)
-                }
-                
-                updateSelectionState();
-
-            } catch (e) { console.error(e); }
-        }
-
-        function updateGroupFilter(groups) {
-            const select = document.getElementById('filterBatch');
-            const currentVal = select.value;
-            // Only rebuild if empty or distinct size changes significantly (simple check)
-            if (select.options.length <= 1) {
-                groups.forEach(g => {
-                    const opt = document.createElement('option');
-                    opt.value = g;
-                    opt.innerText = g;
-                    select.appendChild(opt);
-                });
-                select.value = currentVal;
+            if (isNaN(oldRate) || isNaN(oldDuty) || isNaN(newRate) || oldRate === 0) {
+                // Hide with animation
+                resultContainer.classList.remove('translate-y-0', 'opacity-100');
+                resultContainer.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => resultContainer.classList.add('hidden'), 300);
+                return;
             }
-        }
 
-        // --- Selection & Deletion ---
+            // Formula: (New Rate * Old Duty) / Old Rate
+            const newDuty = (newRate * oldDuty) / oldRate;
+
+            resultText.innerText = 'GHS ' + newDuty.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
+            // Show with animation
+            resultContainer.classList.remove('hidden');
+            // Small delay to allow display block to render before animating opacity
+            setTimeout(() => {
+                resultContainer.classList.remove('translate-y-4', 'opacity-0');
+                resultContainer.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+        }
         
-        function toggleSelectAll(source) {
-            document.querySelectorAll('.row-select').forEach(c => c.checked = source.checked);
-            updateSelectionState();
-        }
-
-        function updateSelectionState() {
-            const checked = document.querySelectorAll('.row-select:checked');
-            const btn = document.getElementById('btnDeleteSelected');
-            const label = document.getElementById('selectedCount');
-            
-            if (checked.length > 0) {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                label.innerText = `${checked.length} selected`;
-                label.classList.remove('hidden');
-            } else {
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-                label.classList.add('hidden');
+        // Add Enter key support
+        document.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                calculate();
             }
-        }
-
-        async function deleteSelected() {
-            const checked = document.querySelectorAll('.row-select:checked');
-            if (!confirm(`Are you sure you want to delete ${checked.length} records? This cannot be undone.`)) return;
-
-            setLoading('btnDeleteSelected', true);
-            const col = await getVehiclesCollection();
-
-            // Parallel delete
-            const promises = Array.from(checked).map(c => window.deleteDoc(window.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'vehicle_records', c.value)));
-            
-            try {
-                await Promise.all(promises);
-                showToast(`Deleted ${checked.length} records`);
-                loadDatabaseView();
-            } catch (e) {
-                showToast("Deletion failed", "error");
-                console.error(e);
-            } finally {
-                setLoading('btnDeleteSelected', false, "Delete Selected");
-            }
-        }
-
-        // --- Edit Logic ---
-
-        function openEditModal(id, year, make, model, trim, duty, rate) {
-            document.getElementById('editId').value = id;
-            document.getElementById('editYear').value = year;
-            document.getElementById('editMake').value = make;
-            document.getElementById('editModel').value = model;
-            document.getElementById('editTrim').value = trim;
-            document.getElementById('editDuty').value = duty;
-            document.getElementById('editRate').value = rate;
-            document.getElementById('editModal').classList.remove('hidden');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editModal').classList.add('hidden');
-        }
-
-        async function saveEdit() {
-            const id = document.getElementById('editId').value;
-            setLoading('btnSaveEdit', true);
-            
-            const updates = {
-                year: parseInt(document.getElementById('editYear').value),
-                make: document.getElementById('editMake').value,
-                make_lower: document.getElementById('editMake').value.toLowerCase(),
-                model: document.getElementById('editModel').value,
-                model_lower: document.getElementById('editModel').value.toLowerCase(),
-                trim: document.getElementById('editTrim').value,
-                trim_lower: document.getElementById('editTrim').value.toLowerCase(),
-                duty_paid_ghs: parseFloat(document.getElementById('editDuty').value),
-                exchange_rate_at_time: parseFloat(document.getElementById('editRate').value)
-            };
-
-            try {
-                await window.updateDoc(window.doc(window.db, 'artifacts', window.appId, 'public', 'data', 'vehicle_records', id), updates);
-                showToast("Record Updated");
-                closeEditModal();
-                loadDatabaseView();
-            } catch (e) {
-                showToast("Update Failed", "error");
-                console.error(e);
-            } finally {
-                setLoading('btnSaveEdit', false, "Save Changes");
-            }
-        }
-
-        // --- Import Logic Updates ---
-
-        async function addManualRecord() {
-            const year = parseInt(document.getElementById('aYear').value);
-            const make = document.getElementById('aMake').value;
-            const group = document.getElementById('aGroup').value || "Manual Entry";
-
-            if(!year || !make) { showToast("Year and Make required", "error"); return; }
-            setLoading('btnManualAdd', true);
-
-            const data = {
-                year, make, 
-                model: document.getElementById('aModel').value,
-                duty_paid_ghs: parseFloat(document.getElementById('aDuty').value) || 0,
-                exchange_rate_at_time: 15.0,
-                batch_group: group
-            };
-            
-            await saveRecord(data);
-            setLoading('btnManualAdd', false);
-            loadDatabaseView();
-        }
-
-        async function processHTMLImport() {
-            const html = document.getElementById('htmlImport').value;
-            const groupName = document.getElementById('iGroup').value || `Import ${new Date().toLocaleTimeString()}`;
-
-            if(!html) { showToast("Paste HTML first", "error"); return; }
-            setLoading('btnBulkImport', true);
-
-            const container = document.createElement('div');
-            container.innerHTML = `<table>${html}</table>`;
-            const rows = container.querySelectorAll('tr');
-            
-            let count = 0;
-            const col = await getVehiclesCollection();
-
-            if(col) {
-                for (let tr of rows) {
-                    const tds = tr.querySelectorAll('td');
-                    if (tds.length < 14) continue;
-                    try {
-                        const trim = tds[1].innerText.trim();
-                        const year = parseInt(tds[2].innerText.replace(/[^0-9]/g, ''));
-                        const make = tds[3].innerText.trim();
-                        const model = tds[4].innerText.trim();
-                        const rate = parseFloat(tds[9].innerText.replace(/[^0-9.]/g, ''));
-                        const duty = parseFloat(tds[13].innerText.replace(/[^0-9.]/g, ''));
-
-                        if (!year || !make || isNaN(duty)) continue;
-
-                        await window.addDoc(col, {
-                            year, make, make_lower: make.toLowerCase(),
-                            model, model_lower: model.toLowerCase(),
-                            trim, trim_lower: trim.toLowerCase(),
-                            duty_paid_ghs: duty,
-                            exchange_rate_at_time: rate || 15.0,
-                            batch_group: groupName,
-                            timestamp: Date.now()
-                        });
-                        count++;
-                    } catch (e) { console.error("Row fail", e); }
-                }
-                showToast(`Imported ${count} records to group "${groupName}"`);
-                loadDatabaseView();
-            }
-            setLoading('btnBulkImport', false);
-        }
-
-        async function saveRecord(data) {
-            const col = await getVehiclesCollection();
-            if (!col) return;
-            try {
-                await window.addDoc(col, {
-                    ...data,
-                    make_lower: data.make.toLowerCase(),
-                    model_lower: (data.model || "").toLowerCase(),
-                    trim: data.trim || "",
-                    trim_lower: (data.trim || "").toLowerCase(),
-                    timestamp: Date.now()
-                });
-                showToast("Record Saved");
-            } catch(e) { showToast("Save Failed", "error"); }
-        }
+        });
     </script>
 </body>
 </html>
